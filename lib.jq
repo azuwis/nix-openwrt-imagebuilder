@@ -186,11 +186,15 @@ def filter_releases:
   def exclude_old_point_releases:
     group_by(parse_release_version[:2]) | map(.[-1]);
 
+  # Releases before 22 don't have `.targets.json` needed by `release2nix.sh`
+  def exclude_legacy_releases:
+    map(select(parse_release_version[0] >= 22));
+
   def match_prefix($prefix):
     map(select($prefix == "" or startswith($prefix)));
 
   $ARGS.named.amount as $amount |
   if $amount < 2 then exclude_rc_releases end |
-  if $amount < 1 then exclude_old_point_releases end |
+  if $amount < 1 then exclude_old_point_releases | exclude_legacy_releases end |
   match_prefix($ARGS.named.prefix // "") |
   sort_releases;  # sort again because group_by messes up ordering
